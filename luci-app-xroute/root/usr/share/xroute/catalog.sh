@@ -14,6 +14,7 @@ catalog_urls() {
 		roblox)        echo "dom $b/Services/roblox.lst"; echo "net $b/Subnets/IPv4/roblox.lst" ;;
 		geoblock)      echo "dom $b/Categories/geoblock.lst" ;;
 		google_ai)     echo "dom $b/Services/google_ai.lst" ;;
+		google_play)   echo "dom $b/Services/google_play.lst" ;;
 		youtube)       echo "dom $b/Services/youtube.lst" ;;
 		tiktok)        echo "dom $b/Services/tiktok.lst" ;;
 		hdrezka)       echo "dom $b/Services/hdrezka.lst" ;;

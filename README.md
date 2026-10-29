@@ -126,6 +126,7 @@ apk update && apk add luci-app-xroute
 | Украина | вся зона `.ua` и `.укр` (банки, Дія и gov.ua, Нова пошта, Укрпошта, магазины, операторы) и украинские сервисы вне `.ua` (ukr.net, Meest, Megogo, Sweet.tv, новости) | этот репозиторий |
 | Сервисы с блокировкой по стране | ChatGPT, Claude, Grok, Notion, Spotify, Netflix, JetBrains, Canva и другие сервисы, которые сами не пускают из России (~465 доменов) | itdoginfo |
 | Google AI | Gemini, AI Studio, NotebookLM | itdoginfo |
+| Google Play | магазин и загрузка приложений (`gvt1.com`, `play.googleapis.com` и другие); узлы загрузок Google общие с видео YouTube, поэтому часть видео тоже может пойти через VPN | itdoginfo |
 | X (Twitter), TikTok, Roblox, HDRezka, Discord, YouTube | домены сервиса, у X, Discord и Roblox — ещё и подсети | itdoginfo |
 | Заблокированные новостные сайты, прочие заблокированные сайты | категории itdoginfo | itdoginfo |
 | Всё заблокированное в России | большой общий список (~1200 доменов) | itdoginfo |
@@ -172,13 +173,16 @@ make package/luci-app-xroute/compile V=s
 
 ## Источники
 
-- [itdoginfo/allow-domains](https://github.com/itdoginfo/allow-domains) — готовые списки доменов и подсетей. Пакет скачивает их напрямую, а несколько списков хранит как запасные копии.
-- [v2fly/domain-list-community](https://github.com/v2fly/domain-list-community) (MIT) — домены Viber.
-- Регистраторы [RIPE](https://stat.ripe.net/) и ARIN — сети Viber (IL-VIBER, AWS-VIBER-MEDIA).
-- [XTLS/Xray-core](https://github.com/XTLS/Xray-core) (MPL-2.0) — VPN-клиент; пакет `xray-core` берётся из репозитория OpenWrt.
-- [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) — формат ссылок и подписок, с которыми совместим пакет.
-- [OpenWrt](https://openwrt.org/) и [LuCI](https://github.com/openwrt/luci) — dnsmasq-full, nftables, ucode, procd.
-- [remittor/zapret-openwrt](https://github.com/remittor/zapret-openwrt) и [bol-van/zapret2](https://github.com/bol-van/zapret2) — zapret для OpenWrt, совместно с которым проверялся пакет.
+| Источник | Что взято |
+| --- | --- |
+| [itdoginfo/allow-domains](https://github.com/itdoginfo/allow-domains) | готовые списки доменов и подсетей; пакет скачивает их напрямую, а несколько списков хранит как запасные копии |
+| [v2fly/domain-list-community, data/viber](https://github.com/v2fly/domain-list-community/blob/master/data/viber) (MIT) | домены Viber |
+| [RIPE: 185.117.96.0/24](https://stat.ripe.net/185.117.96.0/24) и [ARIN: 52.0.252.0/22](https://search.arin.net/rdap/?query=52.0.252.0) | собственные сети Viber (IL-VIBER, AWS-VIBER-MEDIA) |
+| [XTLS/Xray-core](https://github.com/XTLS/Xray-core) (MPL-2.0), [документация Xray](https://xtls.github.io/) | VPN-клиент и формат его настроек; пакет `xray-core` берётся из репозитория OpenWrt |
+| [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) | формат ссылок и подписок, с которыми совместим пакет |
+| [OpenWrt](https://openwrt.org/), [LuCI](https://github.com/openwrt/luci), [ucode](https://github.com/jow-/ucode) | система, веб-интерфейс и язык скриптов пакета |
+| [dnsmasq](https://thekelleys.org.uk/dnsmasq/doc.html), [nftables](https://netfilter.org/projects/nftables/) | заполнение наборов адресов по DNS и перехват трафика |
+| [remittor/zapret-openwrt](https://github.com/remittor/zapret-openwrt), [bol-van/zapret2](https://github.com/bol-van/zapret2) | zapret для OpenWrt, совместно с которым проверялся пакет |
 
 ## Лицензия
 
