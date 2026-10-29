@@ -1,0 +1,4 @@
+# build output and signing keys never belong in the repository
+*.apk
+*.adb
+*private*.pem

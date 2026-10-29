@@ -1,0 +1,145 @@
+#!/bin/sh /etc/rc.common
+# xroute: send traffic to blocked domains/subnets through Xray (VLESS/Hysteria2), everything else goes direct.
+
+START=99
+STOP=10
+USE_PROCD=1
+
+EXTRA_COMMANDS="update_lists update_subs"
+EXTRA_HELP="	update_lists	Re-download the routing lists
+	update_subs	Re-download the subscriptions now"
+
+PROG=/usr/bin/xray
+CONF=/var/etc/xroute/config.json
+CRON=/etc/crontabs/root
+SHARE=/usr/share/xroute
+
+# Adds or removes our cron lines; the crontab on flash is rewritten only when it actually changes.
+cron_set() {
+	local tmp=/tmp/xroute.crontab
+	grep -v "$SHARE/" "$CRON" 2>/dev/null > "$tmp"
+	if [ "$1" = 1 ]; then
+		echo "* * * * * $SHARE/check.sh" >> "$tmp"
+		echo "40 5 1,15 * * $SHARE/lists.sh --update" >> "$tmp"
+		echo "17 * * * * $SHARE/sub.sh" >> "$tmp"
+	fi
+	if ! cmp -s "$tmp" "$CRON"; then
+		cat "$tmp" > "$CRON"
+		/etc/init.d/cron restart >/dev/null 2>&1
+	fi
+	rm -f "$tmp"
+}
+
+# The line of Xray's output worth logging: the panic or "Failed to start", not the stack trace.
+xray_error() {
+	echo "$1" | grep -m 1 -E '^panic:|Failed to' || echo "$1" | tail -n 1
+}
+
+# Prints the servers Xray refuses when each is tested on its own; used when its error names no
+# outbound (a crash). $1: servers already skipped.
+find_bad() {
+	local dir=/tmp/xroute-probe id
+	for id in $(jsonfilter -i "${CONF%/*}/tests.json" -e '@.servers[*].name' 2>/dev/null); do
+		rm -rf "$dir"
+		if ! XROUTE_SKIP="$1" XROUTE_ONLY="$id" XROUTE_OUT_DIR="$dir" ucode "$SHARE/gen-config.uc" >/dev/null 2>&1 ||
+		   ! "$PROG" run -test -c "$dir/config.json" >/dev/null 2>&1; then
+			echo "$id"
+		fi
+	done
+	rm -rf "$dir"
+}
+
+start_service() {
+	local enabled err skip="" bad probed="" n=0
+	config_load xroute
+	config_get_bool enabled main enabled 0
+	if [ "$enabled" != 1 ]; then
+		# leftovers of a previous run must not keep diverting traffic to a stopped Xray
+		"$SHARE/fw.sh" down
+		"$SHARE/lists.sh" --remove
+		cron_set 0
+		return 0
+	fi
+
+	# cron (guard, lists, subscriptions) and a background subscription refresh run even if there are
+	# no usable servers yet: a freshly added subscription restarts the service once it is downloaded
+	cron_set 1
+	( "$SHARE/sub.sh" --boot >/dev/null 2>&1 & )
+
+	# one bad server must not take the others down: drop the outbound Xray complains about and retry;
+	# when Xray crashes without naming one, the servers are tested one by one
+	while :; do
+		if ! err=$(XROUTE_SKIP="$skip" ucode "$SHARE/gen-config.uc" 2>&1); then
+			echo "$err" | logger -t xroute
+			logger -t xroute "cannot build the Xray config"
+			return 1
+		fi
+		[ -n "$err" ] && echo "$err" | logger -t xroute
+		err=$("$PROG" run -test -c "$CONF" 2>&1) && break
+		n=$((n + 1))
+		bad=$(echo "$err" | grep -oE 'proxy-[A-Za-z0-9_]+' | head -n 1)
+		bad=${bad#proxy-}
+		if [ -z "$bad" ] && [ -z "$probed" ]; then
+			probed=1
+			bad=$(find_bad "$skip" | tr '\n' ',')
+		fi
+		bad=${bad%,}
+		if [ -z "$bad" ] || [ $n -gt 10 ]; then
+			logger -t xroute "Xray rejected the config: $(xray_error "$err")"
+			return 1
+		fi
+		logger -t xroute "Xray rejected server(s) $bad: $(xray_error "$err")"
+		skip="$skip${skip:+,}$bad"
+	done
+
+	"$SHARE/fw.sh" up
+
+	procd_open_instance xray
+	procd_set_param command "$PROG" run -c "$CONF"
+	procd_set_param file "$CONF"
+	procd_set_param respawn 3600 5 5
+	procd_set_param limits nofile="65535 65535"
+	procd_set_param stdout 1
+	procd_set_param stderr 1
+	procd_close_instance
+
+	# lists are built right away from RAM/built-in copies; downloads are retried in the background
+	( "$SHARE/lists.sh" --boot >/dev/null 2>&1 & )
+}
+
+stop_service() {
+	# on restart/reload ($action comes from rc.common) only the redirect is lifted while Xray is down:
+	# the sets keep the addresses resolved so far and dnsmasq is not restarted
+	case "$action" in
+		restart|reload)
+			"$SHARE/fw.sh" redirect off
+			;;
+		*)
+			"$SHARE/fw.sh" down
+			"$SHARE/lists.sh" --remove
+			;;
+	esac
+}
+
+service_stopped() {
+	[ "$(uci -q get xroute.main.enabled)" = 1 ] || cron_set 0
+}
+
+service_triggers() {
+	procd_add_reload_trigger xroute
+}
+
+# rc.common's default reload only calls start: Xray would keep the old config (same command line)
+# and disabling the service would leave the redirect rules behind. Always stop and start instead.
+reload_service() {
+	restart
+}
+
+# both run in the background: with retries a slow server would outlast LuCI's RPC timeout
+update_lists() {
+	( "$SHARE/lists.sh" --update >/dev/null 2>&1 & )
+}
+
+update_subs() {
+	( "$SHARE/sub.sh" --force >/dev/null 2>&1 & )
+}

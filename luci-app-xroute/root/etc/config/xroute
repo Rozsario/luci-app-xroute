@@ -1,0 +1,31 @@
+
+config main 'main'
+	option enabled '0'
+	# 'auto' = server with the lowest latency among the alive ones; or a server section name
+	option mode 'auto'
+	# cut the TLS ClientHello of VLESS connections into small pieces (TSPU drops it whole)
+	option fragment '1'
+	option probe_url 'https://www.gstatic.com/generate_204'
+	option probe_interval '1m'
+	option loglevel 'warning'
+	option tproxy_port '12701'
+	option fwmark '0x2000'
+	option route_table '127'
+
+config lists 'lists'
+	list community 'telegram'
+	list community 'meta'
+	list community 'geoblock'
+	list community 'google_ai'
+	# handled by zapret, never sent to the VPN even if a list contains them
+	list exclude 'youtube.com'
+	list exclude 'youtu.be'
+	list exclude 'googlevideo.com'
+	list exclude 'ytimg.com'
+	list exclude 'ggpht.com'
+	list exclude 'youtubei.googleapis.com'
+	list exclude 'discord.com'
+	list exclude 'discord.gg'
+	list exclude 'discord.media'
+	list exclude 'discordapp.com'
+	list exclude 'discordapp.net'

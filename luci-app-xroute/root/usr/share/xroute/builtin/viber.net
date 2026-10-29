@@ -1,0 +1,5 @@
+# Viber: собственные сети компании (сверено с whois ARIN и RIPE)
+# AWS-VIBER-MEDIA — серверы чатов (aloha.viber.com)
+52.0.252.0/22
+# IL-VIBER, Rakuten Viber IL Network
+185.117.96.0/24

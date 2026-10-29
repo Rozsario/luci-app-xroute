@@ -1,0 +1,74 @@
+Лицензия luci-app-xroute (некоммерческая)
+
+Copyright (c) 2026 Rozsario — https://github.com/Rozsario/luci-app-xroute
+
+Программой здесь называются все файлы этого репозитория и собранные из них пакеты,
+включая списки доменов и подсетей.
+
+Разрешается бесплатно и без отдельного согласия автора:
+
+1. Использовать программу где угодно: дома, на работе, в организациях.
+2. Копировать и распространять программу, в том числе собранные пакеты и образы
+   прошивок с ней.
+3. Изменять любые файлы и списки программы и распространять изменённые версии.
+
+При условии, что:
+
+4. В каждой копии и в каждой изменённой версии сохраняются этот текст лицензии
+   и указание автора. Изменённые версии распространяются только на условиях этой
+   лицензии.
+5. Программа, её списки и изменённые версии не монетизируются. Запрещено:
+   продавать их; брать плату за доступ к ним, их скачивание, установку или
+   настройку; включать их в платные продукты и платные услуги (в том числе
+   платные VPN-сервисы и устройства с предустановленной программой на продажу);
+   размещать вместе с ними рекламу; получать от них доход любым другим способом.
+
+Прочее:
+
+6. Сторонние списки и программы, которые программа скачивает или с которыми
+   работает (itdoginfo/allow-domains, v2fly/domain-list-community, Xray, OpenWrt
+   и другие), распространяются на условиях их авторов. Эта лицензия на них не
+   распространяется.
+7. ПРОГРАММА ПРЕДОСТАВЛЯЕТСЯ «КАК ЕСТЬ», БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ. АВТОР НЕ НЕСЁТ
+   ОТВЕТСТВЕННОСТИ ЗА ЛЮБОЙ УЩЕРБ, ВОЗНИКШИЙ ИЗ-ЗА ИСПОЛЬЗОВАНИЯ ПРОГРАММЫ ИЛИ
+   НЕВОЗМОЖНОСТИ ЕЁ ИСПОЛЬЗОВАТЬ.
+8. Нарушение условий 4 или 5 прекращает права, данные этой лицензией.
+9. Если русский и английский тексты расходятся, действует русский.
+
+-------------------------------------------------------------------------------
+
+luci-app-xroute license (non-commercial)
+
+Copyright (c) 2026 Rozsario — https://github.com/Rozsario/luci-app-xroute
+
+"The Program" means all files of this repository and the packages built from
+them, including the domain and subnet lists.
+
+You may, free of charge and without asking the author:
+
+1. Use the Program anywhere: at home, at work, in organisations.
+2. Copy and distribute the Program, including built packages and firmware
+   images that contain it.
+3. Modify any files and lists of the Program and distribute modified versions.
+
+Provided that:
+
+4. Every copy and every modified version keeps this license text and the
+   author attribution. Modified versions are distributed under this license only.
+5. The Program, its lists and modified versions are not monetised. You may not
+   sell them; charge for access to them or for downloading, installing or
+   configuring them; include them in paid products or paid services (including
+   paid VPN services and devices sold with the Program preinstalled); place
+   advertising alongside them; or earn income from them in any other way.
+
+Other terms:
+
+6. Third-party lists and software that the Program downloads or works with
+   (itdoginfo/allow-domains, v2fly/domain-list-community, Xray, OpenWrt and
+   others) are distributed under their authors' terms. This license does not
+   apply to them.
+7. THE PROGRAM IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. THE AUTHOR IS
+   NOT LIABLE FOR ANY DAMAGE ARISING FROM THE USE OF THE PROGRAM OR THE
+   INABILITY TO USE IT.
+8. Breaching condition 4 or 5 terminates the rights granted by this license.
+9. If the Russian and English texts differ, the Russian text prevails.

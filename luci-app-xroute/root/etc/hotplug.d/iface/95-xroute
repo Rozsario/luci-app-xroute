@@ -1,0 +1,17 @@
+#!/bin/sh
+# WAN is (back) up, e.g. after a power cut or a PPPoE reconnect. Xray marked every server dead while the
+# link was down and would only re-check them at the next interval: restart it so they are checked now
+# (lists and subscriptions are fetched again right away too).
+
+[ "$ACTION" = ifup ] || exit 0
+[ "$(uci -q get xroute.main.enabled)" = 1 ] || exit 0
+
+. /lib/functions/network.sh
+network_find_wan wan || exit 0
+[ "$INTERFACE" = "$wan" ] || exit 0
+
+# at boot the service is not started yet and will start on its own
+/etc/init.d/xroute running || exit 0
+
+# DNS (dnsmasq, DoH proxies) restarts on the same event: give it a few seconds
+( sleep 5; /etc/init.d/xroute restart ) >/dev/null 2>&1 &

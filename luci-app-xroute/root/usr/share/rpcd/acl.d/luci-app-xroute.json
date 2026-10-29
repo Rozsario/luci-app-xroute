@@ -1,0 +1,22 @@
+{
+	"luci-app-xroute": {
+		"description": "Grant access to xroute (Xray routing)",
+		"read": {
+			"file": {
+				"/usr/share/xroute/status.uc*": [ "exec" ],
+				"/etc/xroute/subs": [ "list" ],
+				"/etc/xroute/subs/*": [ "read" ]
+			},
+			"ubus": {
+				"service": [ "list" ]
+			},
+			"uci": [ "xroute" ]
+		},
+		"write": {
+			"file": {
+				"/etc/init.d/xroute*": [ "exec" ]
+			},
+			"uci": [ "xroute" ]
+		}
+	}
+}
