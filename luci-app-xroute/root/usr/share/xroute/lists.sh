@@ -95,6 +95,10 @@ do_build() {
 			{ d = $0; while (d != "") { if (d in ex) next; i = index(d, "."); if (!i) break; d = substr(d, i + 1) } print }' \
 			"$TMP/exclude" - > "$TMP/domains"
 	awk -v s="$NFT_SETS" '{ print "nftset=/" $0 "/" s }' "$TMP/domains" > "$TMP/xroute.conf"
+	# VPN servers given by name: every address dnsmasq resolves for them joins the servers set (fw.sh),
+	# so a VPN client on a PC in the LAN reaches the same server past the redirect and past zapret
+	grep -E '^[a-z0-9-]+(\.[a-z0-9-]+)+$' /var/etc/xroute/servers 2>/dev/null | grep -vE '^[0-9.]+$' | sort -u \
+		| awk '{ print "nftset=/" $0 "/4#inet#xroute#servers" }' >> "$TMP/xroute.conf"
 
 	# subnets: plain IPv4 addresses or CIDRs
 	sed 's/#.*//; s/[[:space:]]//g' "$TMP/subnets.src" \

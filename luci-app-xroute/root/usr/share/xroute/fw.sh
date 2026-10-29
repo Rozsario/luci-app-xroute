@@ -4,6 +4,7 @@
 #   fw.sh down      remove everything
 #   fw.sh redirect on|off   only toggle the TPROXY rules (sets keep their contents)
 # Only traffic that enters from the LAN and goes to an address in dst_dns/dst_net is sent to Xray.
+# Traffic to the VPN servers themselves is never redirected and is kept away from zapret.
 
 . /lib/functions.sh
 
@@ -20,7 +21,7 @@ lan_devices() {
 	echo "${d:-br-lan}"
 }
 
-# ", ip, ip" for the bypass set: unique, IPv4 only, without addresses already covered by $PRIVATE
+# "ip, ip" of the VPN servers: unique, IPv4 only, without private addresses
 server_ips() {
 	local h
 	[ -s /var/etc/xroute/servers ] || return 0
@@ -32,7 +33,14 @@ server_ips() {
 		esac
 	done < /var/etc/xroute/servers | sort -u \
 		| grep -vE '^(0|10|127)\.|^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.|^169\.254\.|^172\.(1[6-9]|2[0-9]|3[01])\.|^192\.168\.|^(22[4-9]|2[3-5][0-9])\.' \
-		| awk '{ printf ", %s", $1 }'
+		| awk '{ printf "%s%s", (n++ ? ", " : ""), $1 }'
+}
+
+# zapret (bol-van/zapret and zapret2) leaves alone packets that carry its DESYNC_MARK. Putting it on all
+# traffic to and from the VPN servers keeps zapret off the tunnel, whether the router's Xray or a VPN
+# client on a PC in the LAN connects to them. Empty when zapret is not installed.
+zapret_mark() {
+	uci -q get zapret2.config.DESYNC_MARK || uci -q get zapret.config.DESYNC_MARK
 }
 
 redirect_on() {
@@ -49,31 +57,47 @@ redirect_off() {
 
 # Creates the table or brings an existing one up to date. The sets are kept: dst_dns holds the addresses
 # dnsmasq resolved before a restart, and clients will not ask for them again until their DNS cache expires.
-table_nft() { # <lan devices> <bypass elements>
+# The servers set holds the VPN servers' addresses: resolved here and added by dnsmasq whenever anyone
+# resolves a server name (lists.sh). Traffic to them is never redirected to Xray and never touched by zapret.
+table_nft() { # <lan devices> <server addresses> <zapret mark>
 	cat <<-EOF
 		add table inet xroute
 		add set inet xroute dst_dns { type ipv4_addr; flags timeout; timeout 1d; size 65536; }
 		add set inet xroute dst_net { type ipv4_addr; flags interval; auto-merge; size 65536; }
 		add set inet xroute bypass { type ipv4_addr; flags interval; auto-merge; }
 		flush set inet xroute bypass
-		add element inet xroute bypass { $2 }
+		add element inet xroute bypass { $PRIVATE }
+		add set inet xroute servers { type ipv4_addr; }
+		flush set inet xroute servers
 		add chain inet xroute divert
 		add chain inet xroute prerouting { type filter hook prerouting priority mangle; policy accept; }
 		flush chain inet xroute prerouting
+		add chain inet xroute output { type filter hook output priority mangle; policy accept; }
+		flush chain inet xroute output
+	EOF
+	[ -n "$2" ] && echo "add element inet xroute servers { $2 }"
+	if [ -n "$3" ]; then
+		echo "add rule inet xroute prerouting ip daddr @servers meta mark set meta mark | $3"
+		echo "add rule inet xroute prerouting ip saddr @servers meta mark set meta mark | $3"
+		echo "add rule inet xroute output ip daddr @servers meta mark set meta mark | $3"
+	fi
+	cat <<-EOF
 		add rule inet xroute prerouting iifname != { $1 } return
 		add rule inet xroute prerouting ip daddr @bypass return
+		add rule inet xroute prerouting ip daddr @servers return
 		add rule inet xroute prerouting jump divert
 	EOF
 }
 
 up() {
-	local devs bypass
+	local devs servers zmark
 	devs=$(lan_devices | awk '{ for (i = 1; i <= NF; i++) printf "%s\"%s\"", (n++ ? ", " : ""), $i }')
-	bypass="$PRIVATE$(server_ips)"
+	servers=$(server_ips)
+	zmark=$(zapret_mark)
 	# a table left by an older version with other set flags cannot be updated in place: recreate it
-	if ! table_nft "$devs" "$bypass" | nft -f - 2>/dev/null; then
+	if ! table_nft "$devs" "$servers" "$zmark" | nft -f - 2>/dev/null; then
 		nft delete table inet xroute 2>/dev/null
-		table_nft "$devs" "$bypass" | nft -f -
+		table_nft "$devs" "$servers" "$zmark" | nft -f -
 	fi
 	redirect_on
 
