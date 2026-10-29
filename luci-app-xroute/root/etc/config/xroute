@@ -13,6 +13,8 @@ config main 'main'
 	option route_table '127'
 
 config lists 'lists'
+	# YouTube and Google Play through the VPN (1) or left to zapret (0); they switch together
+	option google_vpn '0'
 	list community 'telegram'
 	list community 'meta'
 	list community 'geoblock'

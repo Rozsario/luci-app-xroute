@@ -38,6 +38,13 @@ install_dnsmasq_conf() { # <file or empty to remove>
 add_id() { ids="$ids $1"; }
 add_line() { echo "$1" >> "$2"; }
 
+# YouTube's own exclusions (by default YouTube is left to zapret) do not apply while it goes through the VPN
+GOOGLE_EXCLUDES=" youtube.com youtu.be googlevideo.com ytimg.com ggpht.com youtubei.googleapis.com gvt1.com "
+add_exclude() {
+	[ "$google_vpn" = 1 ] && case "$GOOGLE_EXCLUDES" in *" $1 "*) return ;; esac
+	echo "$1" >> "$TMP/exclude"
+}
+
 fetch() { # <id> <kind> <url>; returns 1 while the list is missing or still the built-in copy
 	local f="$DIR/$1.$2"
 	if [ "$update" = 1 ] || [ ! -s "$f" ] || [ -f "$f.builtin" ]; then
@@ -63,18 +70,22 @@ build() {
 }
 
 do_build() {
-	local id kind url
+	local id kind url google_vpn
 	mkdir -p "$DIR"
 	ids=""
 	config_load xroute
 	config_list_foreach lists community add_id
+	# YouTube and Google Play switch together: Google serves Play downloads and YouTube video
+	# from the same servers, so one of them alone through the VPN would drag the other along anyway
+	config_get_bool google_vpn lists google_vpn 0
+	[ "$google_vpn" = 1 ] && ids="$ids youtube google_play"
 
 	: > "$TMP/domains.src"; : > "$TMP/subnets.src"
 	# sentinel line: awk's NR == FNR trick breaks when the first file is empty
 	echo "-" > "$TMP/exclude"
 	config_list_foreach lists domain add_line "$TMP/domains.src"
 	config_list_foreach lists subnet add_line "$TMP/subnets.src"
-	config_list_foreach lists exclude add_line "$TMP/exclude"
+	config_list_foreach lists exclude add_exclude
 	rm -f "$TMP/.missing.tmp"
 
 	for id in $ids; do
@@ -111,6 +122,14 @@ do_build() {
 
 	if nft list table inet xroute >/dev/null 2>&1; then
 		nft -f "$TMP/subnets.nft" || logger -t xroute "failed to load subnets"
+		# domains dropped from the lists (e.g. YouTube switched back to zapret) must not keep going through
+		# the VPN for a day; their addresses cannot be told from the others, so the set starts afresh
+		# (dnsmasq restarts with the new config below and refills it from new answers)
+		if [ -s "$TMP/domains.prev" ] && awk 'NR == FNR { now[$0] = 1; next } !($0 in now) { gone = 1; exit } END { exit !gone }' \
+			"$TMP/domains" "$TMP/domains.prev"; then
+			nft flush set inet xroute dst_dns
+		fi
+		cp -f "$TMP/domains" "$TMP/domains.prev"
 		install_dnsmasq_conf "$TMP/xroute.conf"
 	fi
 

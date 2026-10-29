@@ -13,7 +13,6 @@ const COMMUNITY = [
 	[ 'ukraine',       'Украина',                        'все сайты .ua и .укр и украинские сервисы вне .ua: банки, Дія, Пенсійний фонд, Нова пошта, Укрпошта, магазины, операторы, новости' ],
 	[ 'geoblock',      'Сервисы с блокировкой по стране', 'ChatGPT, Claude, Spotify, Netflix, Notion и т.д. — сами не пускают из РФ' ],
 	[ 'google_ai',     'Google AI (Gemini)',             '' ],
-	[ 'google_play',   'Google Play',                    'загрузка приложений; у многих провайдеров напрямую зависает или обрывается. Узлы загрузок Google общие с видео YouTube, поэтому часть видео тоже может пойти через VPN' ],
 	[ 'twitter',       'X (Twitter)',                    'часто открывается и через zapret' ],
 	[ 'tiktok',        'TikTok',                         '' ],
 	[ 'roblox',        'Roblox',                         '' ],
@@ -21,7 +20,6 @@ const COMMUNITY = [
 	[ 'news',          'Заблокированные новостные сайты', '' ],
 	[ 'block',         'Прочие заблокированные сайты',   '' ],
 	[ 'russia_inside', 'Всё заблокированное в РФ',        'большой общий список (~1200 доменов); YouTube и Discord из него исключаются ниже' ],
-	[ 'youtube',       'YouTube',                        'не рекомендуется: YouTube быстрее через zapret' ],
 	[ 'discord',       'Discord',                        'у многих провайдеров работает напрямую или через zapret' ]
 ];
 
@@ -52,7 +50,19 @@ return view.extend({
 
 		const s = m.section(form.NamedSection, 'lists', 'lists');
 
-		let o = s.option(form.MultiValue, 'community', _('Готовые списки'));
+		let o = s.option(form.Flag, 'google_vpn', _('YouTube и Google Play через VPN'),
+			_('<b>Выключено:</b> YouTube и Google Play идут через zapret. Видео обычно быстрее, но у многих провайдеров ' +
+			  'загрузки из Google Play зависают или обрываются.<br>' +
+			  '<b>Включено:</b> все домены YouTube и Google Play идут через VPN. Загрузки из Play работают, ' +
+			  'а видео идёт со скоростью вашего VPN-сервера.<br>' +
+			  'Видео YouTube и загрузки Play Google отдаёт с одних и тех же серверов, поэтому они переключаются вместе. ' +
+			  'Отдельных подсетей у YouTube и Play нет: их адреса общие со всем Google, а кеш-серверы стоят у провайдеров, ' +
+			  'поэтому маршрутизация идёт по доменам. Настройки zapret менять не нужно: трафик, который роутер отправляет ' +
+			  'в VPN, до zapret не доходит, а если выключить переключатель или VPN, YouTube снова подхватит zapret. ' +
+			  'Проверено с zapret2 от remittor (remittor/zapret-openwrt); с другими сборками zapret не проверялось.'));
+		o.rmempty = false;
+
+		o = s.option(form.MultiValue, 'community', _('Готовые списки'));
 		o.widget = 'checkbox';
 		o.display_size = 20;
 		for (const [ id, title, hint ] of COMMUNITY)
@@ -67,7 +77,8 @@ return view.extend({
 		o.datatype = 'ipaddr';
 
 		o = s.option(form.DynamicList, 'exclude', _('Никогда не через VPN'),
-			_('Домены (с поддоменами), которые убираются из всех списков. По умолчанию здесь YouTube и Discord — их открывает zapret.'));
+			_('Домены (с поддоменами), которые убираются из всех списков. По умолчанию здесь YouTube и Discord — их открывает zapret. ' +
+			  'Исключения YouTube не действуют, пока включено «YouTube и Google Play через VPN».'));
 		o.datatype = 'hostname';
 
 		o = s.option(form.Button, '_update', _('Обновить списки сейчас'));
